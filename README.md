@@ -8,5 +8,5 @@ https://github.com/rlworkgroup/metaworld
 - MetaGym
  https://github.com/PaddlePaddle/MetaGym
 ## TODO List
-1. [ ] Implement Task sampler
-2. [ ] 
+1. [ ] One task (batch_size=1) MAML
+2. [ ] Implement Task sampler
