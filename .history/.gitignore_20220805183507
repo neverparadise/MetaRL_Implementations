@@ -1,0 +1,6 @@
+./history/*
+./history/
+./experiments/*
+./weights/*
+.gitignore
+./runs/*

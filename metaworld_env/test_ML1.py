@@ -13,7 +13,7 @@ env.set_task(task)  # Set task
 env.seed(3145)
 max_length = env.max_path_length
 
-for e in range(100):
+for e in range(1000):
     obs = env.reset()  # Reset environment
     #print(obs)
     done = False
