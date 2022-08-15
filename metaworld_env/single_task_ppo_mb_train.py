@@ -16,7 +16,7 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from torch.utils.tensorboard import SummaryWriter
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
 
 def _format(state, device):
     x = state
@@ -42,7 +42,8 @@ class PPO(nn.Module):
             nn.ReLU())
         self.critic = nn.Linear(hidden_dim, 1)
         self.actor_mean = nn.Linear(hidden_dim, num_actions)
-        self.actor_logstd = nn.Linear(hidden_dim, num_actions)
+        self.actor_logstd = nn.Parameter(torch.zeros(1, num_actions))
+        # self.actor_logstd = nn.Linear(hidden_dim, num_actions)
 
     def forward(self, obs):
         obs = _format(obs, self.device)
@@ -57,10 +58,10 @@ class PPO(nn.Module):
     def pi(self, obs):
         hidden = self.forward(obs)
         mu = torch.tanh(self.actor_mean(hidden))
-        logstd = F.softplus(self.actor_logstd(hidden))
-        logstd = logstd.clamp(1e-3)
+        logstd = self.actor_logstd.expand_as(mu)
         std = torch.exp(logstd)
-        
+        std = std.clamp(1e-3)
+        #logstd = F.softplus(self.actor_logstd(hidden)) +1e-3
         return mu, std
 
     def sample_action(self, obs, is_training=False):
@@ -71,7 +72,6 @@ class PPO(nn.Module):
             return action, prob.log_prob(action), prob.entropy()
         else:
             return action.squeeze(0), prob.log_prob(action), prob.entropy()
-        
 class Storage:
     def __init__(self, T_horizon=20, obs_dim=39, num_actions=4, device='cuda'):
         self.T = T_horizon
@@ -99,36 +99,44 @@ class Storage:
         self.next_obs[self.count] = torch.as_tensor(transition['next_obs'])
         self.log_probs[self.count] = torch.as_tensor(transition['log_prob'])
         self.count = (self.count + 1) % self.T
+    
+    def choose_mini_batch(self, batch_size, advantages, returns):
+        for _ in range(self.T // batch_size):
+            indices = torch.randint(0, self.T, (batch_size,))
+            yield self.obs[indices], self.actions[indices], self.rewards[indices], \
+                    self.next_obs[indices], self.log_probs[indices], \
+                         advantages[indices], returns[indices]
 
     def get_batch(self):
         return self.obs, self.actions, self.rewards, self.next_obs, self.log_probs
 
 def train_policy(agent, storage, optimizer, batch_size, T_HORIZON, GAMMA, LAMBDA, EPS_CLIP, ENT_COEFF):
-    for k in range(K_EPOCHS): # skip
-        state, action, rewards, next_state, old_prob = storage.get_batch()
-        next_values = agent.value(next_state)
-        values = agent.value(state)
-        with torch.no_grad():
-            td_target = rewards + GAMMA * next_values
-            delta = td_target - values
-            advantages = torch.zeros_like(delta)
-            advantages = advantages.to(device, dtype=torch.float)
-            adv = 0.0
-            for idx in reversed(range(len(delta))):
-                adv = GAMMA * LAMBDA * adv + delta[idx]
-                advantages[idx] = adv
-            returns = advantages + values
-
-        _, cur_log_p, entropy = agent.sample_action(state, is_training=True)
-        ratio = torch.exp(cur_log_p - old_prob).detach()
-        surr1 = ratio * advantages
-        surr2 = torch.clamp(ratio, 1-EPS_CLIP, 1+EPS_CLIP) * advantages
-        actor_loss = (-torch.min(surr1, surr2) - entropy * ENT_COEFF)
-        critic_loss = F.smooth_l1_loss(values, td_target)
-        loss = actor_loss.mean() + critic_loss.mean()
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    state, _, rewards, next_state, _ = storage.get_batch()
+    next_values = agent.value(next_state)
+    values = agent.value(state)
+    td_target = rewards + GAMMA * next_values
+    with torch.no_grad():
+        delta = td_target - values
+        advantages = torch.zeros_like(delta)
+        advantages = advantages.to(device, dtype=torch.float)
+        adv = 0.0
+        for idx in reversed(range(len(delta))):
+            adv = GAMMA * LAMBDA * adv + delta[idx]
+            advantages[idx] = adv
+        returns = advantages + values
+    for i in range(K_EPOCHS):
+        for s_, a_, r_, ns_, old_log_p_, adv_, ret_ in storage.choose_mini_batch(batch_size, advantages, returns):
+            _, cur_log_p, entropy = agent.sample_action(s_, is_training=True)
+            cur_v = agent.value(s_)
+            ratio = torch.exp(cur_log_p - old_log_p_).detach()
+            surr1 = ratio * adv_
+            surr2 = torch.clamp(ratio, 1-EPS_CLIP, 1+EPS_CLIP) * adv_
+            actor_loss = (-torch.min(surr1, surr2) - entropy * ENT_COEFF)
+            critic_loss = F.smooth_l1_loss(cur_v, ret_.detach())
+            loss = actor_loss.mean() + critic_loss.mean()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
 # Hyperparameters
 SEED = 3145  # some seed number here
@@ -163,8 +171,9 @@ storage = Storage(T_horizon=20, obs_dim=39, num_actions=4, device=device)
 optimizer = optim.Adam(agent.parameters(), lr=LR)
 print(os.curdir)
 WEIGHT_PATH = "/home/kukjin/Projects/MetaRL/MetaRL_Implementations/metaworld_env/weights/PPO.pt"
-LOG_DIR = os.curdir + "/experiemnts/ppo"
+LOG_DIR = os.curdir + "/experiemnts/ppo_mb"
 writer = SummaryWriter(LOG_DIR)
+
 
 for e in range(1000000):
     obs = env.reset()  # Reset environment
