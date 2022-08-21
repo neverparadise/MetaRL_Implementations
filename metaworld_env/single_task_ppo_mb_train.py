@@ -42,8 +42,8 @@ class PPO(nn.Module):
             nn.ReLU())
         self.critic = nn.Linear(hidden_dim, 1)
         self.actor_mean = nn.Linear(hidden_dim, num_actions)
-        self.actor_logstd = nn.Parameter(torch.zeros(1, num_actions))
-        # self.actor_logstd = nn.Linear(hidden_dim, num_actions)
+        #self.actor_logstd = nn.Parameter(torch.zeros(1, num_actions))
+        self.actor_logstd = nn.Linear(hidden_dim, num_actions)
 
     def forward(self, obs):
         obs = _format(obs, self.device)
@@ -58,10 +58,9 @@ class PPO(nn.Module):
     def pi(self, obs):
         hidden = self.forward(obs)
         mu = torch.tanh(self.actor_mean(hidden))
-        logstd = self.actor_logstd.expand_as(mu)
+        logstd = F.softplus(self.actor_logstd(hidden)) +1e-3
         std = torch.exp(logstd)
         std = std.clamp(1e-3)
-        #logstd = F.softplus(self.actor_logstd(hidden)) +1e-3
         return mu, std
 
     def sample_action(self, obs, is_training=False):
@@ -112,10 +111,10 @@ class Storage:
 
 def train_policy(agent, storage, optimizer, batch_size, T_HORIZON, GAMMA, LAMBDA, EPS_CLIP, ENT_COEFF):
     state, _, rewards, next_state, _ = storage.get_batch()
-    next_values = agent.value(next_state)
-    values = agent.value(state)
-    td_target = rewards + GAMMA * next_values
     with torch.no_grad():
+        next_values = agent.value(next_state)
+        values = agent.value(state)
+        td_target = rewards + GAMMA * next_values
         delta = td_target - values
         advantages = torch.zeros_like(delta)
         advantages = advantages.to(device, dtype=torch.float)
@@ -124,6 +123,7 @@ def train_policy(agent, storage, optimizer, batch_size, T_HORIZON, GAMMA, LAMBDA
             adv = GAMMA * LAMBDA * adv + delta[idx]
             advantages[idx] = adv
         returns = advantages + values
+        
     for i in range(K_EPOCHS):
         for s_, a_, r_, ns_, old_log_p_, adv_, ret_ in storage.choose_mini_batch(batch_size, advantages, returns):
             _, cur_log_p, entropy = agent.sample_action(s_, is_training=True)

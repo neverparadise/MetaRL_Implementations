@@ -1,0 +1,29 @@
+name: metarl
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.7
+  - pip
+  - py-opencv
+  - cudatoolkit=11.1
+  - pytorch
+  - torchvision
+
+  - pip:
+    - minedojo
+    - akro
+    - android-env
+    - tqdm
+    - typing
+    - gym==0.21.0
+    - gym3
+    - scipy
+    - mujoco
+    - jupyter
+    - numba
+    - pyglet
+    - dowel
+    - tensorboard
+    - stable-baselines3[extra]
+    - git+https://github.com/rlworkgroup/metaworld.git@master#egg=metaworld
