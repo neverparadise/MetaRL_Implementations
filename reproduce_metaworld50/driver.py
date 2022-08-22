@@ -32,11 +32,32 @@ from ray.tune.logger import pretty_print
 # device6 = torch.device("cuda:6" if torch.cuda.is_available() else "cpu")
 # device7 = torch.device("cuda:7" if torch.cuda.is_available() else "cpu")
 
-env_names = metaworld.ML1.ENV_NAMES
-print(env_names)
-print(len(env_names))
-env_list = []
+# env_names = metaworld.ML1.ENV_NAMES
+# print(env_names)
+# print(len(env_names))
+env_list = ['assembly-v2', 'basketball-v2', 'bin-picking-v2', 'box-close-v2',
+             'button-press-topdown-v2', 'button-press-topdown-wall-v2',
+             'button-press-v2', 'button-press-wall-v2', 'coffee-button-v2',
+             'coffee-pull-v2', 'coffee-push-v2', 'dial-turn-v2',
+             'disassemble-v2', 'door-close-v2', 'door-lock-v2', 'door-open-v2',
+             'door-unlock-v2', 'hand-insert-v2', 'drawer-close-v2',
+             'drawer-open-v2', 'faucet-open-v2', 'faucet-close-v2', 'hammer-v2',
+             'handle-press-side-v2', 'handle-press-v2', 'handle-pull-side-v2',
+             'handle-pull-v2', 'lever-pull-v2', 'peg-insert-side-v2',
+             'pick-place-wall-v2', 'pick-out-of-hole-v2', 'reach-v2',
+             'push-back-v2', 'push-v2', 'pick-place-v2', 'plate-slide-v2',
+             'plate-slide-side-v2', 'plate-slide-back-v2',
+             'plate-slide-back-side-v2', 'peg-unplug-side-v2', 'soccer-v2',
+             'stick-push-v2', 'stick-pull-v2', 'push-wall-v2', 'reach-wall-v2',
+             'shelf-place-v2', 'sweep-into-v2', 'sweep-v2', 'window-open-v2',
+             'window-close-v2']
 
+env_names = ['door-close-v2', 'door-open-v2',
+             'button-press-topdown-v2', 'button-press-topdown-wall-v2',
+             'drawer-close-v2', 'drawer-open-v2',
+             'push-back-v2', 'push-v2', ]
+
+         
 def env_creator(env_config):
     env_name = env_config["env"]
     SEED = env_config["seed"]
@@ -82,8 +103,8 @@ for env_name in env_names:
             env_config = {"env": env_name, "seed": 1}
         )\
         .rollouts(
-            num_rollout_workers=2,
-            num_envs_per_worker=2,
+            num_rollout_workers=4,
+            num_envs_per_worker=1,
             create_env_on_local_worker=False,
             rollout_fragment_length=250,
             horizon=500,
@@ -97,16 +118,12 @@ for env_name in env_names:
     # trainer = config.build(env=env_name)
     trainer = PPOTrainer(env=env_name, config=config)
     # model = trainer.get_policy().model
-    for epoch in range(4000):
+    for epoch in range(1000):
         result = trainer.train()
-        if epoch % 200 == 0:
-            print(pretty_print(result))
+        print(pretty_print(result))
+        if epoch % 50 == 0:
             checkpoint = trainer.save()
             print("checkpoint saved at", checkpoint)
-
-
-
-
 
     # model_config = {
     #                 "fcnet_hiddens": [128, 128],
