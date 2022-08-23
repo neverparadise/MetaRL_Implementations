@@ -162,7 +162,7 @@ agent = agent.to(device)
 storage = Storage(T_horizon=20, obs_dim=39, num_actions=4, device=device)
 optimizer = optim.Adam(agent.parameters(), lr=LR)
 print(os.curdir)
-WEIGHT_PATH = "/home/kukjin/Projects/MetaRL/MetaRL_Implementations/metaworld_env/weights/PPO.pt"
+WEIGHT_PATH = "/home/slowlab/Desktop/MetaRL/MetaRL_Implementations/metaworld_env/weights/PPO.pt"
 LOG_DIR = os.curdir + "/experiemnts/ppo"
 writer = SummaryWriter(LOG_DIR)
 
@@ -177,7 +177,7 @@ for e in range(1000000):
 
     # done은 없지만 성공해서 done 되고 추가적인 스텝을 진행할 수도 있다. 
     while step < max_length and not done:
-        # env.render()
+        env.render()
         with torch.no_grad():
             action, log_prob, _  = agent.sample_action(obs)  # Sample an action
 
@@ -196,6 +196,7 @@ for e in range(1000000):
 
         if step == max_length:
             writer.add_scalar("score", score, e)
+            print(info)
             print(f"episode: {e} is finished. total_rewards: {score}")
             break
     torch.save(agent.state_dict(), WEIGHT_PATH)

@@ -3,7 +3,7 @@ import random
 
 SEED = 3145  # some seed number here
 #benchmark = metaworld.Benchmark(seed=SEED)
-print(metaworld.ML1.ENV_NAMES)  # Check out the available environments
+#print(metaworld.ML1.ENV_NAMES)  # Check out the available environments
 
 ml1 = metaworld.ML1('door-open-v2', seed=SEED) # Construct the benchmark, sampling tasks
 
@@ -13,7 +13,7 @@ env.set_task(task)  # Set task
 env.seed(3145)
 max_length = env.max_path_length
 
-for e in range(1000):
+for e in range(5):
     obs = env.reset()  # Reset environment
     #print(obs)
     done = False

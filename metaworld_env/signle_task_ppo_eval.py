@@ -166,8 +166,6 @@ print(env.action_space)
 
 agent = PPO(obs_dim=39, hidden_dim=128, num_actions=4, device=device)
 agent = agent.to(device)
-storage = Storage(T_horizon=20, obs_dim=39, num_actions=4, device=device)
-optimizer = optim.Adam(agent.parameters(), lr=LR)
 print(os.curdir)
 WEIGHT_PATH = os.curdir + '/weights/PPO.pt'
 WEIGHT_PATH = "/home/slowlab/Desktop/MetaRL/MetaRL_Implementations/metaworld_env/weights/PPO.pt"
@@ -184,28 +182,22 @@ for e in range(1000000):
 
     # done은 없지만 성공해서 done 되고 추가적인 스텝을 진행할 수도 있다. 
     while step < max_length and not done:
-        # env.render()
+        env.render()
         with torch.no_grad():
             action, log_prob, _  = agent.sample_action(obs)  # Sample an action
 
         next_obs, reward, done, info = env.step(action.cpu().numpy())  # Step the environoment with the sampled random action
         step += 1
         next_obs = obs
-        transition = {"obs":obs, "action":action, "reward":reward, \
-                        "next_obs":next_obs, "log_prob":log_prob}
-        storage.put_data(transition)
         score += reward
-        if step % T_HORIZON == 0 and step > 0:
-            train_policy(agent, storage, optimizer, BATCH_SIZE, T_HORIZON, GAMMA, LAMBDA, EPS_CLIP, ENT_COEFF)
-        
-        #print(info['success'])
         success_curr_time_step += info['success']
 
         if step == max_length:
             writer.add_scalar("score", score, e)
+            print(info)
             print(score)
             break
-    torch.save(agent.state_dict(), WEIGHT_PATH)
+    #torch.save(agent.state_dict(), WEIGHT_PATH)
     num_successful_trajectories += int(success_curr_time_step)
     writer.add_scalar("num_success", num_successful_trajectories, e)
 

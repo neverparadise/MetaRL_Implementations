@@ -1,8 +1,6 @@
 import metaworld
 import random
-
 ml10 = metaworld.ML10() # Construct the benchmark, sampling tasks
-
 training_envs = []
 for name, env_cls in ml10.train_classes.items():
   env = env_cls()
