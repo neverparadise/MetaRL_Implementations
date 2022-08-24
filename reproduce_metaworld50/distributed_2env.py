@@ -75,7 +75,7 @@ def distributed_trainer(env_name):
         )\
         .environment(
             env=env_name,
-            render_env=True,
+            render_env=False,
             env_config = {"env": env_name, "seed": 1}
         )\
         .rollouts(
