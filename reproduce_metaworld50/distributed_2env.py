@@ -30,14 +30,10 @@ from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 # for k, v in env_cls_dict.items():
 #     print(k, v)
 
-env_names = ['door-close-v2-goal-observable', 'door-open-v2-goal-observable',
-             'button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
-             'drawer-close-v2-goal-observable', 'drawer-open-v2-goal-observable',
-             'push-back-v2-goal-observable', 'push-v2-goal-observable', ]
-
-env_cls = ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE['push-v2-goal-observable']
-eval_env= env_cls(seed=0)
-eval_env.seed(0)
+env_names = ['door-close-v2-goal-observable', 'door-open-v2-goal-observable']
+             #'button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
+             #'drawer-close-v2-goal-observable', 'drawer-open-v2-goal-observable',
+             #'push-back-v2-goal-observable', 'push-v2-goal-observable', ]
 
 def env_creator(env_config):
     env_name = env_config["env"]
@@ -57,7 +53,7 @@ def distributed_trainer(env_name):
     config.training(
             gamma=0.99,
             lr=0.0005,
-            train_batch_size=5000,
+            train_batch_size=1000,
             model={
                     "fcnet_hiddens": [128, 128],
                     "fcnet_activation": "tanh",
@@ -72,20 +68,21 @@ def distributed_trainer(env_name):
             )\
         .resources(
             num_gpus=1,
-            num_cpus_per_worker=3,
+            num_cpus_per_worker=2,
                     )\
         .framework(
             framework='torch'
         )\
         .environment(
             env=env_name,
+            render_env=True,
             env_config = {"env": env_name, "seed": 1}
         )\
         .rollouts(
-            num_rollout_workers=3,
-            num_envs_per_worker=4,
+            num_rollout_workers=2,
+            num_envs_per_worker=2,
             create_env_on_local_worker=False,
-            rollout_fragment_length=416,
+            rollout_fragment_length=250,
             horizon=500,
             soft_horizon=False,
             no_done_at_end=False,
@@ -99,14 +96,15 @@ def distributed_trainer(env_name):
             #evaluation_config=,
             #custom_evaluation_function=,
         )
-    trainer = PPOTrainer(env=env_name, config=config)
-    # model = trainer.get_policy().model
-    for epoch in range(2000):
-        result = trainer.train()
-        print(pretty_print(result))
-        if epoch % 100 == 0:
-            checkpoint = trainer.save()
-            print("checkpoint saved at", checkpoint)
+    print(env_name)
+    # trainer = PPOTrainer(env=env_name, config=config)
+    # for epoch in range(2000):
+    #     result = trainer.train()
+    #     #print(pretty_print(result))
+    #     print(f"env: {env_name}, epoch: {epoch}")
+    #     if epoch % 100 == 0:
+    #         checkpoint = trainer.save()
+    #         print("checkpoint saved at", checkpoint)
     
     return 0
 
