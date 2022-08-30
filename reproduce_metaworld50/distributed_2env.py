@@ -97,14 +97,14 @@ def distributed_trainer(env_name):
             #custom_evaluation_function=,
         )
     print(env_name)
-    # trainer = PPOTrainer(env=env_name, config=config)
-    # for epoch in range(2000):
-    #     result = trainer.train()
-    #     #print(pretty_print(result))
-    #     print(f"env: {env_name}, epoch: {epoch}")
-    #     if epoch % 100 == 0:
-    #         checkpoint = trainer.save()
-    #         print("checkpoint saved at", checkpoint)
+    trainer = PPOTrainer(env=env_name, config=config)
+    for epoch in range(2000):
+        result = trainer.train()
+        print(pretty_print(result))
+        print(f"env: {env_name}, epoch: {epoch}")
+        if epoch % 100 == 0:
+            checkpoint = trainer.save()
+            print("checkpoint saved at", checkpoint)
     
     return 0
 
