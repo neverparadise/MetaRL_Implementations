@@ -31,9 +31,6 @@ from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 #     print(k, v)
 
 env_names = ['door-close-v2-goal-observable', 'door-open-v2-goal-observable']
-             #'button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
-             #'drawer-close-v2-goal-observable', 'drawer-open-v2-goal-observable',
-             #'push-back-v2-goal-observable', 'push-v2-goal-observable', ]
 
 def env_creator(env_config):
     env_name = env_config["env"]
@@ -98,15 +95,17 @@ def distributed_trainer(env_name):
         )
     print(env_name)
     trainer = PPOTrainer(env=env_name, config=config)
-    for epoch in range(2000):
-        result = trainer.train()
-        print(pretty_print(result))
-        print(f"env: {env_name}, epoch: {epoch}")
-        if epoch % 100 == 0:
-            checkpoint = trainer.save()
-            print("checkpoint saved at", checkpoint)
-    
-    return 0
+    return trainer
+
+@ray.remote
+def distributed_trainer(trainer):
+    result = trainer.train()
+    return result
 
 distributed_trainier_refs = [distributed_trainer.remote(env_name) for env_name in env_names]
-results = ray.get(distributed_trainier_refs)
+
+for epoch in range(100):
+    results = [trainer.train() for trainer in distributed_trainier_refs]
+    print(pretty_print(ray.get(results)))
+    if epoch % 100 == 0:
+        checkpoints = [trainer.save() for trainer in distributed_trainier_refs]

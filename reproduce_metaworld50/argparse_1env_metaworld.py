@@ -100,9 +100,9 @@ config.training(
     
 trainer = PPOTrainer(env=env_name, config=config)
 print(env_name)
-for epoch in range(2000):
+for epoch in range(10):
     result = trainer.train()
     print(result)
-    if epoch % 50 == 0:
+    if epoch % 2 == 0:
         checkpoint = trainer.save()
         print("checkpoint saved at", checkpoint)
