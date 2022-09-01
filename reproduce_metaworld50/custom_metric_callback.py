@@ -27,6 +27,9 @@ parser.add_argument("--stop-iters", type=int, default=2000)
 
 
 class MyCallbacks(DefaultCallbacks):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def on_episode_start(
         self,
         *,
@@ -44,8 +47,8 @@ class MyCallbacks(DefaultCallbacks):
             "after env reset!"
         )
         print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
-        episode.user_data["success"] = 0.0
-        episode.hist_data["success"] = []
+        episode.user_data["is_success"] = []
+        episode.hist_data["is_success"] = []
 
     def on_episode_step(
         self,
@@ -62,8 +65,9 @@ class MyCallbacks(DefaultCallbacks):
             "ERROR: `on_episode_step()` callback should not be called right "
             "after env reset!"
         )
-        success = episode.last_observation_for()[3]['success']
-        episode.user_data["sucess"] = success
+        success = episode.last_info_for()['success']
+        episode.user_data["is_success"].append(bool(success))
+#        episode.user_data["is_success"] |= bool(success)
 
     def on_episode_end(
         self,
@@ -86,18 +90,16 @@ class MyCallbacks(DefaultCallbacks):
                 "after episode is done!"
             )
             
-        success = episode.last_observation_for()[3]['success']
+        is_success = True if True in episode.user_data["is_success"] else False
         print(
-            "episode {} (env-idx={}) ended with length {} and pole "
+            "episode {} (env-idx={}) ended with length {} and "
             "sucess {}".format(
-                episode.episode_id, env_index, episode.length, success
+                episode.episode_id, env_index, episode.length, is_success
             )
         )
-        episode.custom_metrics["success"] = success
-        episode.hist_data["success"] = episode.user_data["success"]
+        episode.custom_metrics["is_success"] = is_success
+        episode.hist_data["is_success"] = episode.user_data["is_success"]
 
-    def on_sample_end(self, *, worker: RolloutWorker, samples: SampleBatch, **kwargs):
-        print("returned sample batch of size {}".format(samples.count))
 
     def on_train_result(self, *, algorithm, result: dict, **kwargs):
         print(
@@ -105,18 +107,19 @@ class MyCallbacks(DefaultCallbacks):
                 algorithm, result["episodes_this_iter"]
             )
         )
+        #print("success: {}".format(result["custom_metrics"]["is_success"]))
         # you can mutate the result dict to add new fields to return
         result["callback_ok"] = True
 
-    def on_learn_on_batch(
-        self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs
-    ) -> None:
-        result["sum_actions_in_train_batch"] = np.sum(train_batch["actions"])
-        print(
-            "policy.learn_on_batch() result: {} -> sum actions: {}".format(
-                policy, result["sum_actions_in_train_batch"]
-            )
-        )
+    # def on_learn_on_batch(
+    #     self, *, policy: Policy, train_batch: SampleBatch, result: dict, **kwargs
+    # ) -> None:
+    #     result["sum_actions_in_train_batch"] = np.sum(train_batch["actions"].cpu().numpy())
+    #     print(
+    #         "policy.learn_on_batch() result: {} -> sum actions: {}".format(
+    #             policy, result["sum_actions_in_train_batch"]
+    #         )
+    #     )
 
     def on_postprocess_trajectory(
         self,
@@ -130,11 +133,10 @@ class MyCallbacks(DefaultCallbacks):
         original_batches: Dict[str, Tuple[Policy, SampleBatch]],
         **kwargs
     ):
-        print("postprocessed {} steps".format(postprocessed_batch.count))
+        #print("postprocessed {} steps".format(postprocessed_batch.count))
         if "num_batches" not in episode.custom_metrics:
             episode.custom_metrics["num_batches"] = 0
         episode.custom_metrics["num_batches"] += 1
-
 
 if __name__ == "__main__":
     args = parser.parse_args()

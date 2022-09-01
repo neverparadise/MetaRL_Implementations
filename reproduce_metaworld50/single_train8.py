@@ -9,6 +9,16 @@ import random
 import metaworld
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 
+import logging
+import logging
+ 
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s:%(message)s',
+    level=logging.DEBUG,
+    datefmt='%m/%d/%Y %I:%M:%S %p',
+)
+ 
+
 #env_name = 'door-close-v2'
 env_names = ['door-close-v2-goal-observable', 'door-open-v2-goal-observable',
              'button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
@@ -32,7 +42,7 @@ def make_trainer(env_name):
     config.training(
             gamma=0.99,
             lr=0.0005,
-            train_batch_size=4096,
+            train_batch_size=1024,
             model={
                     "fcnet_hiddens": [128, 128],
                     "fcnet_activation": "tanh",
@@ -46,8 +56,8 @@ def make_trainer(env_name):
             shuffle_sequences=True,
             )\
         .resources(
-            num_gpus=8,
-            num_cpus_per_worker=4,
+            num_gpus=2,
+            num_cpus_per_worker=2,
                     )\
         .framework(
             framework='torch'
@@ -58,8 +68,8 @@ def make_trainer(env_name):
             env_config = {"env": env_name, "seed": 1}
         )\
         .rollouts(
-            num_rollout_workers=8,
-            num_envs_per_worker=4,
+            num_rollout_workers=4,
+            num_envs_per_worker=2,
             create_env_on_local_worker=False,
             rollout_fragment_length=64,
             horizon=500,
@@ -83,11 +93,13 @@ def make_trainer(env_name):
 ray.init()
 for env_name in env_names:
     trainer = make_trainer(env_name)
-    for i in range(100):
+    for i in range(4000):
         # Perform one iteration of training the policy with PPO
         result = trainer.train()
-        #print(pretty_print(result))
-        custom_metrics = result.metrics["custom_metrics"]
+        result.pop('info')
+        result.pop('sampler_results')
+        print(pretty_print(result))
+        custom_metrics = result["custom_metrics"]
         print(custom_metrics)
         trainer.evaluate()
         if i % 20 == 0:
