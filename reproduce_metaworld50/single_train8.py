@@ -65,7 +65,7 @@ def make_trainer(env_name):
         .environment(
             env=env_name,
             render_env=False,
-            env_config = {"env": env_name, "seed": 1}
+            env_config = {"env": env_name, "seed": 0}
         )\
         .rollouts(
             num_rollout_workers=4,
@@ -73,6 +73,9 @@ def make_trainer(env_name):
             create_env_on_local_worker=False,
             rollout_fragment_length=64,
             horizon=500,
+            ignore_worker_failures=True,
+            recreate_failed_worker=True,
+            restart_failed_sub_environments=True,
             soft_horizon=False,
             no_done_at_end=False,
         )\
