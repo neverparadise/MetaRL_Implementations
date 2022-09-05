@@ -4,7 +4,7 @@ from ray.tune.registry import register_env
 from ray.tune.logger import pretty_print
 from ray.rllib.agents.ppo import PPOTrainer, PPOConfig
 from custom_metric_callback import MyCallbacks
-
+import tensorboard
 import random
 import metaworld
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
@@ -20,8 +20,8 @@ logging.basicConfig(
  
 
 #env_name = 'door-close-v2'
-env_names = ['door-close-v2-goal-observable', 'door-open-v2-goal-observable',
-             'button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
+ #['door-close-v2-goal-observable', 'door-open-v2-goal-observable',
+env_names = ['button-press-topdown-v2-goal-observable', 'button-press-topdown-wall-v2-goal-observable',
              'drawer-close-v2-goal-observable', 'drawer-open-v2-goal-observable',
              'push-back-v2-goal-observable', 'push-v2-goal-observable', ]
 
@@ -99,7 +99,10 @@ for env_name in env_names:
     trainer = make_trainer(env_name)
     for i in range(4000):
         # Perform one iteration of training the policy with PPO
-        result = trainer.train()
+        try: 
+            result = trainer.train()
+        except:
+            continue
         result.pop('info')
         result.pop('sampler_results')
         print(pretty_print(result))
