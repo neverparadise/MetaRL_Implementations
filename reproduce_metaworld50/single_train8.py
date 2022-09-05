@@ -42,7 +42,7 @@ def make_trainer(env_name):
     config.training(
             gamma=0.99,
             lr=0.0005,
-            train_batch_size=1024,
+            train_batch_size=2048,
             model={
                     "fcnet_hiddens": [128, 128],
                     "fcnet_activation": "tanh",
@@ -56,8 +56,8 @@ def make_trainer(env_name):
             shuffle_sequences=True,
             )\
         .resources(
-            num_gpus=2,
-            num_cpus_per_worker=2,
+            num_gpus=4,
+            num_cpus_per_worker=4,
                     )\
         .framework(
             framework='torch'
@@ -68,27 +68,28 @@ def make_trainer(env_name):
             env_config = {"env": env_name, "seed": 0}
         )\
         .rollouts(
-            num_rollout_workers=4,
-            num_envs_per_worker=2,
+            num_rollout_workers=8,
+            num_envs_per_worker=4,
             create_env_on_local_worker=False,
             rollout_fragment_length=64,
             horizon=500,
             ignore_worker_failures=True,
-            recreate_failed_worker=True,
+            recreate_failed_workers=True,
             restart_failed_sub_environments=True,
             soft_horizon=False,
             no_done_at_end=False,
         )\
-        .evaluation(
-            evaluation_interval=10,
-            #evaluation_duration=100,
-            evaluation_duration_unit='auto',
-            evaluation_num_workers=2,
-            evaluation_parallel_to_training=True
-            #evaluation_config=,
-            #custom_evaluation_function=,
-        )\
         .callbacks(MyCallbacks)
+        # .evaluation(
+        #     evaluation_interval=10,
+        #     #evaluation_duration=100,
+        #     evaluation_duration_unit='auto',
+        #     evaluation_num_workers=2,
+        #     evaluation_parallel_to_training=True
+        #     #evaluation_config=,
+        #     #custom_evaluation_function=,
+        # )\
+
     print(env_name)
     trainer = PPOTrainer(env=env_name, config=config)
     return trainer
@@ -104,9 +105,8 @@ for env_name in env_names:
         print(pretty_print(result))
         custom_metrics = result["custom_metrics"]
         print(custom_metrics)
-        trainer.evaluate()
+        #trainer.evaluate()
         if i % 20 == 0:
             checkpoint = trainer.save()
             print("checkpoint saved at", checkpoint)
-    break
 
