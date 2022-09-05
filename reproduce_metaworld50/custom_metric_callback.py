@@ -46,7 +46,7 @@ class MyCallbacks(DefaultCallbacks):
             "ERROR: `on_episode_start()` callback should be called right "
             "after env reset!"
         )
-        print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
+        #print("episode {} (env-idx={}) started.".format(episode.episode_id, env_index))
         episode.user_data["is_success"] = []
         episode.hist_data["is_success"] = []
 
@@ -91,22 +91,22 @@ class MyCallbacks(DefaultCallbacks):
             )
             
         is_success = True if True in episode.user_data["is_success"] else False
-        print(
-            "episode {} (env-idx={}) ended with length {} and "
-            "sucess {}".format(
-                episode.episode_id, env_index, episode.length, is_success
-            )
-        )
+        # print(
+        #     "episode {} (env-idx={}) ended with length {} and "
+        #     "sucess {}".format(
+        #         episode.episode_id, env_index, episode.length, is_success
+        #     )
+        # )
         episode.custom_metrics["is_success"] = is_success
         episode.hist_data["is_success"] = episode.user_data["is_success"]
 
 
     def on_train_result(self, *, algorithm, result: dict, **kwargs):
-        print(
-            "Algorithm.train() result: {} -> {} episodes".format(
-                algorithm, result["episodes_this_iter"]
-            )
-        )
+        # print(
+        #     "Algorithm.train() result: {} -> {} episodes".format(
+        #         algorithm, result["episodes_this_iter"]
+        #     )
+        # )
         #print("success: {}".format(result["custom_metrics"]["is_success"]))
         # you can mutate the result dict to add new fields to return
         result["callback_ok"] = True
@@ -137,35 +137,3 @@ class MyCallbacks(DefaultCallbacks):
         if "num_batches" not in episode.custom_metrics:
             episode.custom_metrics["num_batches"] = 0
         episode.custom_metrics["num_batches"] += 1
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-
-    ray.init()
-    tuner = tune.Tuner(
-        "PG",
-        run_config=air.RunConfig(
-            stop={
-                "training_iteration": args.stop_iters,
-            },
-        ),
-        param_space={
-            "env": "CartPole-v0",
-            "num_envs_per_worker": 2,
-            "callbacks": MyCallbacks,
-            "framework": args.framework,
-            # Use GPUs iff `RLLIB_NUM_GPUS` env var set to > 0.
-            "num_gpus": int(os.environ.get("RLLIB_NUM_GPUS", "0")),
-        },
-    )
-    # there is only one trial involved.
-    result = tuner.fit().get_best_result()
-
-    # Verify episode-related custom metrics are there.
-    custom_metrics = result.metrics["custom_metrics"]
-    print(custom_metrics)
-    assert "pole_angle_mean" in custom_metrics
-    assert "pole_angle_min" in custom_metrics
-    assert "pole_angle_max" in custom_metrics
-    assert "num_batches_mean" in custom_metrics
-    assert "callback_ok" in result.metrics
