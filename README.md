@@ -5,10 +5,9 @@
 https://github.com/rlworkgroup/metaworld
 - Mujoco
  https://github.com/deepmind/mujoco
-- MetaGym
- https://github.com/PaddlePaddle/MetaGym
- 
+
 ## TODO List
-1. [X] One task (batch_size=1) MAML
-2. [ ] Implement Task sampler
-3. [ ] Implement RL^2
+1. [ ] Reproduce meta-world 50 tasks
+2. [X] One task (batch_size=1) MAML
+3. [ ] Implement Task sampler
+4. [ ] Implement RL^2
